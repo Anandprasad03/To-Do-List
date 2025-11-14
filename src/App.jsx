@@ -1,54 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
 
 function App() {
   const [todo, settodo] = useState("");
+
+  const [allTodos, setAllTodos] = useState(() => {
+    const savedTodos = localStorage.getItem("todos");
+    return savedTodos ? JSON.parse(savedTodos) : [];
+  });
+  const [activeFilter, setActiveFilter] = useState("all");
   const [todos, settodos] = useState([]);
-  const [allTodos, setAllTodos] = useState([]);
 
-  const handlecompleted = () => {
-    const completed = allTodos.filter((item) => item.isCompleted);
-    settodos(completed);
-  };
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(allTodos));
+  }, [allTodos]);
 
-  const handlepending = () => {
-    const pending = allTodos.filter((item) => !item.isCompleted);
-    settodos(pending);
-  };
+  useEffect(() => {
+    if (activeFilter === "completed") {
+      settodos(allTodos.filter((item) => item.isCompleted));
+    } else if (activeFilter === "pending") {
+      settodos(allTodos.filter((item) => !item.isCompleted));
+    } else { // "all"
+      settodos(allTodos);
+    }
+  }, [allTodos, activeFilter]);
 
-  const handletasks = () => {
-    settodos(allTodos);
-  };
+
+  const handlecompleted = () => setActiveFilter("completed");
+  const handlepending = () => setActiveFilter("pending");
+  const handletasks = () => setActiveFilter("all");
 
   const handlecheckbox = (id) => {
     const updatedAll = allTodos.map((item) =>
       item.id === id ? { ...item, isCompleted: !item.isCompleted } : item
     );
     setAllTodos(updatedAll);
-    settodos(updatedAll);
   };
 
   const handleedit = (id) => {
     const todoToEdit = allTodos.find((item) => item.id === id);
     settodo(todoToEdit.todo);
-
     const newTodos = allTodos.filter((item) => item.id !== id);
     setAllTodos(newTodos);
-    settodos(newTodos);
   };
 
   const handledelete = (id) => {
     const newTodos = allTodos.filter((item) => item.id !== id);
     setAllTodos(newTodos);
-    settodos(newTodos);
   };
 
   const handleadd = () => {
     if (todo.trim() === "") return;
-
     const newTodo = { id: Date.now(), todo, isCompleted: false };
     const newTodos = [...allTodos, newTodo];
-    settodos(newTodos);
     setAllTodos(newTodos);
     settodo("");
   };
@@ -72,12 +76,12 @@ function App() {
           </h2>
 
           <div className="flex flex-col items-center gap-4">
-            <input
+            <textarea
               onChange={handlechange}
               value={todo}
-              type="text"
-              className="w-full bg-[#faf7f3] text-gray-800 px-4 py-2 rounded-lg outline-none border border-[#d8d0c0] placeholder-gray-400 focus:border-[#6d5dfc] transition-all"
+              className="w-full bg-[#faf7f3] text-gray-800 px-4 py-2 rounded-lg outline-none border border-[#d8d0c0] placeholder-gray-400 focus:border-[#6d5dfc] transition-all resize-none"
               placeholder="Enter your task..."
+              rows="3"
             />
 
             <button
@@ -94,25 +98,27 @@ function App() {
             Your To-dos
           </h1>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
             {todos.length === 0 ? (
               <p className="text-center text-gray-500 mt-5">No tasks yet...</p>
             ) : (
               todos.map((item) => (
                 <div
                   key={item.id}
-                  className="flex justify-between items-center bg-[#faf7f3] border border-[#e9e1d3] hover:bg-[#f3eee4] transition-all p-4 rounded-xl shadow-sm"
+                  className="flex justify-between items-start bg-[#faf7f3] border border-[#e9e1d3] hover:bg-[#f3eee4] transition-all p-4 rounded-xl shadow-sm"
                 >
-                  <div className="flex items-center gap-3">
+                  <div
+                    className="flex items-start gap-3 flex-1 min-w-0"
+                  >
                     <input
                       type="checkbox"
                       checked={item.isCompleted}
                       onChange={() => handlecheckbox(item.id)}
-                      className="w-5 h-5 accent-[#6d5dfc]"
+                      className="w-5 h-5 accent-[#6d5dfc] flex-shrink-0 mt-1"
                     />
 
                     <div
-                      className={`text-lg ${
+                      className={`text-lg break-word ${
                         item.isCompleted
                           ? "line-through text-gray-400"
                           : "text-gray-700"
@@ -122,7 +128,9 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div
+                    className="flex gap-3 flex-shrink-0 pl-4"
+                  >
                     <button
                       onClick={() => handleedit(item.id)}
                       className="bg-[#6d5dfc] hover:bg-[#5b4de8] py-1 px-4 rounded-md text-white font-medium shadow-sm transition-all"
